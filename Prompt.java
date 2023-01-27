@@ -1,144 +1,382 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-
 /**
- *	Prompt.java - Uses BufferedReader.
- *	Provides utilities for user input.  This enhances the BufferedReader
- *	class so our programs can recover from "bad" input, and also provides
- *	a way to limit numerical input to a range of values.
+ *	Tower of Hanoi Puzzle. You start with a three peg board and a number of
+ *	disks of increasingly larger diameters, each with a hole in the center
+ *	to fit around a peg.
  *
- *	The advantages of BufferedReader are speed, synchronization, and piping
- *	data in Linux.
+ *	At the start of the game, the disks are stacked on the left peg with
+ *	decreasing diameters. You can start with any number of disks. More
+ *	disks means a more challenging puzzle.
  *
- *	@author	Sidhant Malik
- *	@since	August 25, 2022
+ *	Below is the start of a Tower of Hanoi puzzle with 4 disks (or levels).
+ *
+ * Level
+ *	4     -|-         |          |     
+ *	3    --|--        |          |     
+ *	2   ---|---       |          |     
+ *	1  ----|----      |          |     
+ *	  -----+----------+----------+-----
+ * Peg     0          1          2     
+ *
+ *
+ *	The objective is to move the stack of disks from the left peg to the
+ *	center peg in the same order as they began. The solution looks like this:
+ *
+ * Level
+ *	4      |         -|-         |     
+ *	3      |        --|--        |     
+ *	2      |       ---|---       |     
+ *	1      |      ----|----      |     
+ *	  -----+----------+----------+-----
+ * Peg     0          1          2     
+ *
+ *
+ *	The rules are simple. The disks are moved peg to peg, only one at a time,
+ *	and a larger disk cannot be put on top of a smaller disk.
+ *
+ *	There are three methods to play the game:
+ *		1. playGame() - Lets the user play the game.
+ *		2. solve4Disks() - A step-by-step algorithm that solves a 4-disk puzzle.
+ *		3. solvePuzzle() - Automated algorithm to solve the puzzle with any
+ *							number of disks. (to be completed by student)
+ *
+ *	@author Mr Greenstein
+ *	@version January 1, 2017
  */
-
-public class Prompt
-{
-	// BufferedReader variables
-	private static InputStreamReader streamReader = 
-							new InputStreamReader(System.in);
-	private static BufferedReader bufReader = 
-							new BufferedReader(streamReader);
+public class HanoiTower {
+	
+	private int [][] tower;	// rows = pegs; cols = disk number 1 to levels
+	private int levels;		// number of disks or levels to move
+	private int numMoves;	// total number of moves
+	
+	private final boolean PRINT_TOWER = true;	// print tower after each move
+		
+	// Constructor
+	public HanoiTower() {
+		levels = 0;
+		numMoves = 0;
+	}
+	
+	public static void main(String[] args) {
+		HanoiTower h = new HanoiTower();
+		h.run(args);
+	}
+	
+	public void run(String[] args) {
+		/*
+		 *	User plays game
+		 */
+		//playGame(args);
+		
+		/*
+		 *	Step-by-step algorithm solves the game using 4 levels
+		 */
+		//solve4Disks();
+		
+		/*
+		 *	Automated solver method
+		 */
+		solvePuzzle(args);
+		
+		// Print out number of moves
+		System.out.println("\nIt took you " + numMoves + " moves with " + levels + " levels.\n");
+	}
 	
 	/**
-	 *	Prompts user for string of characters and returns the string.
-	 *	@param ask  The prompt line
-	 *	@return  	The string input
+	 *	User plays the game
+	 *	@param args		the arguments passed from the command line
 	 */
-	public static String getString (String ask)
-	{
-		System.out.print(ask + " -> ");
-		String input = "";
+	public void playGame(String[] args) {
+		// Input the number of levels in the game
+		getLevels(args);
+		
+		initializeTower();
+		printIntroduction();
+		
+		// Play the game
+		while (! isDone()) {
+			printTowers();
+			int from = Prompt.getInt("\nMove disk FROM peg", 0, 2);
+			int to = Prompt.getInt("          TO   peg", 0, 2);
+			if (from == to)
+				System.out.println("\nERROR: from and to pegs cannot be the same. Try again.\n");
+			else
+				if (! moveDisk(from, to))
+					System.out.println("\nERROR: Invalid move. Try again.\n");
+		}
+		
+		// Game over
+		printTowers();
+		System.out.println("\nSUCCESS!!! You won!\n");
+	}
+	
+	/**
+	 *	Algorithm to solve 4 disk problem step-by-step
+	 */
+	public void solve4Disks() {
+		levels = 4;
+		initializeTower();
+		System.out.println("\nSolving the game step-by-step using 4 levels.\n");
+		printTowers();
+		// solving the problem in steps
+		moveDisk(0, 2);		printTowers();
+		moveDisk(0, 1);		printTowers();
+		moveDisk(2, 1);		printTowers();
+		moveDisk(0, 2);		printTowers();
+		moveDisk(1, 0);		printTowers();
+		moveDisk(1, 2);		printTowers();
+		moveDisk(0, 2);		printTowers();
+		moveDisk(0, 1);		printTowers();
+		moveDisk(2, 1);		printTowers();
+		moveDisk(2, 0);		printTowers();
+		moveDisk(1, 0);		printTowers();
+		moveDisk(2, 1);		printTowers();
+		moveDisk(0, 2);		printTowers();
+		moveDisk(0, 1);		printTowers();
+		moveDisk(2, 1);		printTowers();
+	}
+	
+	/**
+	 *	Get the number of levels to use
+	 *	@param args		the arguments passed from the command line
+	 */
+	public void getLevels(String[] args) {
+		if (args.length < 1) {
+			System.out.println("Usage: java HanoiTower <numLevels>");
+			System.exit(0);
+		}
 		try {
-			input = bufReader.readLine();
+			levels = Integer.parseInt(args[0]);
 		}
-		catch(IOException e) {
-			System.err.println("ERROR: BufferedReader could not read line.");
+		catch (NumberFormatException e) {
+			System.err.println("ERROR: Number of levels must be an integer");
+			System.out.println("Usage: java HanoiTower <numLevels>");
+			System.exit(-1);
 		}
-		return input;
 	}
 	
 	/**
-	 *	Prompts the user for a character and returns the character.
-	 *	@param ask  The prompt line
-	 *	@return  	The character input
+	 *	Introduction to game
 	 */
-	public static char getChar (String ask)
-	{
-		char charIn = ' ';
+	public void printIntroduction() {
+		System.out.println("\n");
+		System.out.println("  _____                               __   _   _                   _ ");
+		System.out.println(" |_   _|____      _____ _ __    ___  / _| | | | | __ _ _ __   ___ (_)");
+		System.out.println("   | |/ _ \\ \\ /\\ / / _ \\ '__|  / _ \\| |_  | |_| |/ _` | '_ \\ / _ \\| |");
+		System.out.println("   | | (_) \\ V  V /  __/ |    | (_) |  _| |  _  | (_| | | | | (_) | |");
+		System.out.println("   |_|\\___/ \\_/\\_/ \\___|_|     \\___/|_|   |_| |_|\\__,_|_| |_|\\___/|_|");
+		System.out.println("\n");
+		System.out.println("Welcome to the Tower Of Hanoi Game. You are given a wooden board with three tall");
+		System.out.println("pegs in a row. Wooden disks are stacked in decreasing diameter on the left peg.");
+		System.out.println("The objective is to move the stack of disks from the left peg to the center peg");
+		System.out.println("in the same order as they began. Disks are moved from peg to peg, one at a time,");
+		System.out.println("and a larger disk cannot be placed on a smaller disk.");
+		System.out.println("\nLet's begin!\n");
+	}
+	
+	/**
+	 *	Determine if the game is done and all of the disks are on the center peg.
+	 *	@return		true if the game is done; false otherwise
+	 */
+	public boolean isDone() {
+		return tower[1][levels-1] > 0;
+	}
+	
+	/**
+	 *	Algorithm plays the game
+	 *	@param args		the arguments passed from the command line
+	 */
+	public void solvePuzzle(String[] args) {
+		// Input the number of levels in the game
+		getLevels(args);
 		
-		boolean found = false;
-		while (!found) {
-			String str = getString(ask);
-			
-			if (str.length() != 1) {
-				found = false;
-			}
-			else {
-				found = true;
-				charIn = str.charAt(0);
-			}
-		}
+		initializeTower();
 		
-		return charIn;
+		printTowers();
+		
+		solveRecursive(levels, 0, 1);
 	}
 	
 	/**
-	 *	Prompts the user for an integer and returns the integer.
-	 *	@param ask  The prompt line
-	 *	@return  	The integer input
+	 *	This method solves the tower recursively - first moves smallest
+	 *	most recent peg to the right, and the one under to the middle,
+	 *	making a pair, and then again moves the smaller and larger left and
+	 *	right respectively before adding the bottom one, and then continually
+	 *	creates these different ones making sure that the three+ most recent
+	 *	peg sizes are never on the same column until the very end. 
+	 *
+	 *	@param depth - starts with level it is on, goes down 1 every iteration
+	 *	@param currentLocation - current location of the current peg
+	 *	@param finalLocation - the final location to move all pegs too
 	 */
-	public static int getInt (String ask)
+	public void solveRecursive(int depth, int currentLocation, int finalLocation)
 	{
-		int val = 0;
-		boolean found = false;
-		while (!found){
-			String str = getString(ask);
-			try {
-				val = Integer.parseInt(str);
-				found = true;
-			}
-			catch(NumberFormatException e) { 
-				found = false;
-			}
+		int shift = -1; //where to move next iterations tower
+		
+		if (currentLocation == 1 && finalLocation == 2)		shift = 0;
+		else if(currentLocation == 2 && finalLocation == 1)	shift = 0;
+		else if(currentLocation == 0 && finalLocation == 2)	shift = 1;
+		else if(currentLocation == 2 && finalLocation == 0)	shift = 1;
+		else if (currentLocation == 0 && finalLocation == 1)shift = 2;
+		else if(currentLocation == 1 && finalLocation == 0)	shift = 2;
+		
+		if (depth != 1) 
+			solveRecursive(depth - 1, currentLocation, shift);
+		 
+		moveDisk(currentLocation, finalLocation);
+		printTowers();
+		 
+		if (depth != 1) 
+			solveRecursive(depth-1, shift, finalLocation);
+		
+	}
+
+
+	
+	/**
+	 *	Move the top disk from peg to peg. Move is successful if a smaller
+	 *	disk is moved on top of a larger disk. It is unsuccessful if a
+	 *	larger disk tries to move on top a smaller disk.
+	 *
+	 *	@param from		the index of the from peg (0, 1, or 2)
+	 *	@param to		the index of the to peg (0, 1, or 2)
+	 *	@return			true if move successful, false otherwise
+	 */
+	public boolean moveDisk(int from, int to) {
+		// find the index of the top disk on "from" peg
+		int a = levels - 1;
+		int diskFrom = -1;
+		while (a >= 0 && diskFrom == -1) {
+			// found the disk
+			if (tower[from][a] > 0) diskFrom = a;
+			a--;
 		}
-		return val;
-	}
-	
-	/**
-	 *	Prompts the user for an integer using a range of min to max,
-	 *	and returns the integer.
-	 *	@param ask  The prompt line
-	 *	@param min  The minimum integer accepted
-	 *	@param max  The maximum integer accepted
-	 *	@return  	The integer input
-	 */
-	public static int getInt (String ask, int min, int max)
-	{
-		int val = 0;
-		do {
-			val = getInt(ask + " (" + min + ", " + max + ")" );
-		} while(val < min || val > max);
-		return val;
-	}
-	
-	/**
-	 *	Prompts the user for a double and returns the double.
-	 *	@param ask  The prompt line
-	 *	@return  The double input
-	 */
-	public static double getDouble (String ask)
-	{
-		double val = 0;
-		boolean found = false;
-		while (!found){
-			String str = getString(ask);
-			try {
-				val = Double.parseDouble(str);
-				found = true;
-			}
-			catch(NumberFormatException e) { 
-				found = false;
-			}
+		// no disk found on "from" peg
+		if (diskFrom == -1) return false;
+		
+		// find the index of the top disk on "to" peg
+		a = levels - 1;
+		int diskTo = -1;
+		while (a >= 0 && diskTo == -1) {
+			// found the disk
+			if (tower[to][a] > 0) diskTo = a;
+			a--;
 		}
-		return val;
+		// if "to" peg has a disk and diskFrom is smaller than diskTo, then move
+		if (diskTo != -1 && tower[from][diskFrom] < tower[to][diskTo]) {
+			tower[to][diskTo + 1] = tower[from][diskFrom];
+			tower[from][diskFrom] = 0;
+			// increment numMoves counter
+			numMoves++;
+			return true;
+		}
+		// if "to" peg is empty, then move
+		else if (diskTo == -1) {
+			tower[to][0] = tower[from][diskFrom];
+			tower[from][diskFrom] = 0;
+			// increment numMoves counter
+			numMoves++;
+			return true;
+		}
+		// else "to" peg has disk smaller than "from" peg, do don't move
+		return false;
 	}
 	
 	/**
-	 *	Prompts the user for a double and returns the double.
-	 *	@param ask  The prompt line
-	 *	@param min  The minimum double accepted
-	 *	@param max  The maximum double accepted
-	 *	@return  The double input
+	 *	Initialize the tower array.
+	 *	tower 0 row = lowest level on tower or peg
+	 *	tower column = size of disk (1 = smallest, levels = largest)
 	 */
-	public static double getDouble (String ask, double min, double max)
-	{
-		double val = 0;
-		do {
-			val = getInt(ask + " (" + min + ", " + max + ")" );
-		} while(val < min || val > max);
-		return val;	}
+	public void initializeTower() {
+		// 3 pegs and number of disks or levels of disks
+		tower = new int [3][levels];
+		// on first peg (index 0) stack biggest disk number (levels) at 0 column index
+		for (int disk = 0; disk < levels; disk++)
+			tower[0][disk] = levels - disk;
+		// set other peg columns empty (= 0)
+		for (int peg = 1; peg < 3; peg++)
+			for (int disk = 0; disk < levels; disk++)
+				tower[peg][disk] = 0;
+	}
+	
+	/**
+	 *	Print the towers of Hanoi
+	 */
+	public void printTowers() {
+		System.out.println("\nLevel");
+		// for each level of peg starting with the bottom (index 0)
+		for (int level = levels - 1; level >= 0; level--) {
+			System.out.printf("%2d ", (level + 1));
+			printLine(0, level);	// peg 1
+			printLine(1, level);	// peg 2
+			printLine(2, level);	// peg 3
+			System.out.println();
+		}
+		// print the base of the towers
+		printBase();
+		System.out.println("\n");
+	}
+	
+	/**
+	 *	Print the base of the towers
+	 */
+	public void printBase() {
+		printChar(3, " ");
+		for (int a = 0; a < 3; a++) {
+			// print left side of peg
+			printChar(levels + 1, "-");
+			// print peg base
+			System.out.print("+");
+			// print right side of peg
+			printChar(levels + 1, "-");
+		}
+		System.out.println();
+		// print labels on base
+		System.out.print("Peg");
+		for (int a = 0; a < 3; a++) {
+			// print left side of peg
+			printChar(levels + 1, " ");
+			// print peg base
+			System.out.print("" + a);
+			// print right side of peg
+			printChar(levels + 1, " ");
+		}
+	}
+	
+	/**
+	 *	Print one peg and the disk width (level)
+	 *	@param peg		the peg 0, 1, or 2
+	 *	@param level	the disk width
+	 */
+	public void printLine(int peg, int level) {
+		/*
+			Print peg one (index 0) at level
+		*/
+		// print empty spaces for left side of disk
+		printChar(levels - tower[peg][level] + 1, " ");
+		// print left side of disk
+		printDisk(tower[peg][level]);
+		// print peg
+		System.out.print("|");
+		// print right side of disk
+		printDisk(tower[peg][level]);
+		// print empty spaces for right side of disk
+		printChar(levels - tower[peg][level] + 1, " ");
+	}
+	
+	/**
+	 *	Print a character n times
+	 *	@param n	the number of times to print str
+	 *	@param str	the String to print
+	 */
+	public void printChar(int n, String str) {
+		for (int a = 0; a < n; a++) System.out.print(str);
+	}
+	
+	/**
+	 *	Print one side of a disk
+	 *	@param n	width of disk
+	 */
+	public void printDisk(int n) {
+		for (int a = 0; a < n; a++) System.out.print("-");
+	}
 }
