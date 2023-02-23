@@ -65,7 +65,7 @@ public class HanoiTower {
 		/*
 		 *	User plays game
 		 */
-		playGame(args);
+		//playGame(args);
 		
 		/*
 		 *	Step-by-step algorithm solves the game using 4 levels
@@ -75,7 +75,7 @@ public class HanoiTower {
 		/*
 		 *	Automated solver method
 		 */
-		//solvePuzzle(args);
+		solvePuzzle(args);
 		
 		// Print out number of moves
 		System.out.println("\nIt took you " + numMoves + " moves with " + levels + " levels.\n");
@@ -193,12 +193,25 @@ public class HanoiTower {
 		
 		printTowers();
 		
-		solveRecursive();
+		solveRecursive(levels, 0, 1);
 	}
 	
+	/**
+	 *	This method solves the tower recursively - first moves smallest
+	 *	most recent peg to the right, and the one under to the middle,
+	 *	making a pair, and then again moves the smaller and larger left and
+	 *	right respectively before adding the bottom one, and then continually
+	 *	creates these different ones making sure that the three+ most recent
+	 *	peg sizes are never on the same column until the very end. 
+	 *
+	 *	@param depth - starts with level it is on, goes down 1 every iteration
+	 *	@param currentLocation - current location of the current peg
+	 *	@param finalLocation - the final location to move all pegs too
+	 */
 	public void solveRecursive(int depth, int currentLocation, int finalLocation)
 	{
-		int shift = -1;
+		int shift = -1; //where to move next iterations tower
+		
 		if (currentLocation == 1 && finalLocation == 2)		shift = 0;
 		else if(currentLocation == 2 && finalLocation == 1)	shift = 0;
 		else if(currentLocation == 0 && finalLocation == 2)	shift = 1;
@@ -209,8 +222,9 @@ public class HanoiTower {
 		if (depth != 1) 
 			solveRecursive(depth - 1, currentLocation, shift);
 		 
-		 	moveDisk(currentLocation, finalLocation);
-		
+		moveDisk(currentLocation, finalLocation);
+		printTowers();
+		 
 		if (depth != 1) 
 			solveRecursive(depth-1, shift, finalLocation);
 		
